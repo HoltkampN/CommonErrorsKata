@@ -10,25 +10,33 @@ namespace CommonErrorsKata
 {
     public partial class CommonErrorsForm : Form
     {
+        //Pascal suggested ReSharper Padcal for Consts
+        private const int MinAnswers = 15;
+
+
         private readonly AnswerQueue<TrueFalseAnswer> answerQueue;
         private readonly string[] files;
         private readonly SynchronizationContext synchronizationContext;
         private int i = 100;
         private string currentBaseName = null;
         private readonly string[] possibleAnswers = null;
+        private readonly string[] fileNames = null;
 
         public CommonErrorsForm()
         {
             InitializeComponent();
             synchronizationContext = SynchronizationContext.Current;
             files = System.IO.Directory.GetFiles(Environment.CurrentDirectory +  @"..\..\..\ErrorPics");
+
             possibleAnswers = new string[] { "Missing File", "null instance", "divide by zero" };
+                fileNames = new string[] { "object_ref.png", "object_ref_not_set.png", "divide_by_zero.png"};
             lstAnswers.DataSource = possibleAnswers;
-            answerQueue = new AnswerQueue<TrueFalseAnswer>(15);
+            answerQueue = new AnswerQueue<TrueFalseAnswer>(MinAnswers);
             Next();
             lstAnswers.Click += LstAnswers_Click;
             StartTimer();
         }
+
         private async void StartTimer()
         {
             await Task.Run(() =>
@@ -46,22 +54,48 @@ namespace CommonErrorsKata
         {
             i = 100;
             var tokens = currentBaseName.Split(' ');
-            //TODO:  Figure out what is a valid answer.
-            answerQueue.Enqueue(new TrueFalseAnswer(true));
+
+            if (tokens.Length == 0)
+            {
+                return;
+            }
+
+            var imageName = tokens[0];
+            var index = Array.IndexOf(fileNames, imageName);
+
+            if (index < 0 || index >= possibleAnswers.Length)
+            {
+                return;
+            }
+
+            var correctAnswer = possibleAnswers[index];
+
+Console.WriteLine(lstAnswers.SelectedItem.ToString());
+
+            if (lstAnswers.SelectedItem.ToString() == correctAnswer)
+            {
+                answerQueue.Enqueue(new TrueFalseAnswer(true));
+            }
+            else
+            {
+                answerQueue.Enqueue(new TrueFalseAnswer(true));
+
+            }
+
             Next();
         }
 
         private void Next()
         {
-            if (answerQueue.Count == 15 && answerQueue.Grade >= 98)
+            if (answerQueue.Count >= MinAnswers && answerQueue.Grade >= 98)
             {
                 MessageBox.Show("Congratulations you've defeated me!");
                 Application.Exit();
                 return;
             }
             label1.Text = answerQueue.Grade.ToString() + "%";
-            var file = files.GetRandom();
-            currentBaseName= Path.GetFileName(file);
+            var file = files.GetRandom(); 
+            currentBaseName = Path.GetFileName(file);
             pbImage.ImageLocation = file;
         }
 
@@ -71,6 +105,7 @@ namespace CommonErrorsKata
                 progress.Value = value;
             }), value);
         }
+
         public void Message(string value)
         {
             synchronizationContext.Post(new SendOrPostCallback(x => {
